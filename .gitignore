@@ -1,0 +1,21 @@
+# 不提交实验目录
+experiments/
+
+
+
+*/__pycache__/*
+
+analyze/figures/*
+
+# 不提交数据文件
+data/hfsdate/*
+data/hfsdata_v2/*
+data/hfsdata_v3/*
+data/metrics_gmres_qr_lu/*
+*.csv
+*.pkl
+*.zip
+*.pyc
+
+.pdf
+.png

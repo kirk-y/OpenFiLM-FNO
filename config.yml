@@ -1,0 +1,60 @@
+
+data:
+    max_n: 3000                 # 最大裂缝单元数
+    origin_path: 'C:\workplace\hfs_data\LHS_Ta1200x100' # 原始数据路径
+    save_path: 'C:\workplace\hfs_data\LHS_Ta1200x100_processed' # 原始数据路径
+    # origin_path: "data/hfsdata_v3/train" # 原始数据路径
+    # save_path: "data/hfsdata_v3/train_processed" # 处理后数据保存路径
+    noise_level: 1e-3           # 噪声水平
+    rates: [0.7, 0.2, 0.1]      # 训练、验证、测试数据集划分比例（0.1 用于训练脚本内简单测试）
+    batch_size: 32               # 批量大小
+    seed: 42                    # 随机种子
+    version: 'v3'             # 数据版本
+    max_samples_per_condition: 100000  # 每个工况最多样本数
+    skip_invalid_samples: true  # 是否跳过无效样本（如应力平衡失败的样本）
+    export_stats: true          # 是否导出处理后的统计学信息
+    stats_format: 'yaml'        # 统计文件格式: yaml/json
+    stats_filename: 'dataset_stats.yaml'  # 统计文件名（保存到save_path）
+
+training:
+    epochs: 500    # 训练轮数
+    lr: 1e-4       # 学习率
+    weight_decay: 1e-5 # 权重衰减
+    T_0: 50        # CosineAnnealingWarmRestarts参数
+    T_mult: 2      # CosineAnnealingWarmRestarts参数
+    device: 'cuda' # 训练设备 'cpu' or 'cuda' 
+    exp_path: 'experiments' # 实验保存路径
+    loss_type: 'mse'        # loss函数 'mse' 
+    early_patience: 30      # 早停耐心值
+    early_threshold: 1e-2   # 早停阈值
+    amp: false             # 禁用以避免 cuFFT error
+    # enable_training: false
+    enable_training: true
+
+model:
+    # input_features: [w_old, b, r, diag_A, fi, cluster_dist, sp_hf_0, sp_hf_1, sp_df_0, sp_df_1]
+    input_features: [w_old, b, r, diag_A, fi, sp_hf_0, sp_hf_1, sp_df_0, sp_df_1]
+    film:
+        enabled: true
+        hidden_dim: 64
+        physics_dim: 5
+    fno:
+        layers: 8                   # FNO层数
+        hidden_channels: 32         # 隐藏层通道数
+        n_modes: [64, 64]         # 初始模式数
+        n_modes_1d: 128
+        domain_padding: 0.1
+        inverse_hidden_channels: 32 # 流固耦合转换层的隐藏层通道数
+        b_hidden_channels: 32       # 应力平衡向量层隐藏通道数
+        updw_hidden_channels: 32    # 提升和降维层隐藏通道数
+    save_path: ""
+
+testing:
+    enabled: true                   # 训练完成后自动执行测试
+    checkpoint_path: ""             # 留空时自动使用训练产生的 best_model.pth
+    exp_dir: "experiments/testing_outputs"
+    figures_dir: "experiments/testing_outputs/figures"
+    metrics_path: "experiments/testing_outputs/metrics.json"
+    max_samples: all
+    test_data_path: ''              # 留空时使用训练数据中的 test split (rates[2]=0.1)
+

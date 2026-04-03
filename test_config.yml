@@ -1,0 +1,57 @@
+data:
+  max_n: 3000
+  origin_path: "K:\\ProgramData\\HFS_FNO_moudel_data\\ParameterSensitivityAnalysis"
+  save_path: "K:\\ProgramData\\HFS_FNO_moudel_data\\ParameterSensitivityAnalysis_processed"
+  batch_size: 1
+  v2_use_preprocessed: true
+  rates: [0.0, 0.0, 1.0]
+  seed: 42
+  max_conditions: 20              # 仅取前10个工况（按名称排序）
+  max_samples_per_condition: 10000  # 每个工况最多50个样本
+  version: 'v3'
+  skip_invalid_samples: true
+  export_stats: true
+  stats_format: 'yaml'
+  stats_filename: 'dataset_stats.yaml'
+
+training:
+  device: 'cuda'
+  loss_type: 'mse'
+  early_patience: 20
+  amp: true
+  epochs: 1
+
+model:
+  input_features: [w_old, b, r, diag_A, fi, sp_hf_0, sp_hf_1, sp_df_0, sp_df_1]
+  film:
+    enabled: true
+    hidden_dim: 64
+    physics_dim: 5
+  fno:
+    layers: 8              # 必须与训练时的 config.yml 保持一致（训练使用 4 层）
+    hidden_channels: 32
+    n_modes: [64, 64]
+    n_modes_1d: 128
+    domain_padding: 0.1
+    inverse_hidden_channels: 32
+    b_hidden_channels: 32
+    updw_hidden_channels: 32
+  save_path: ""
+
+testing:
+  enabled: true
+  checkpoint_path: "D:\\workplace\\project\\FSIFNOmodel\\HFSmodel_FNO\\experiments\\wPhysicField_fsc_exp_name_FluidSolidFNOmodel_1D_20260330_165718_pramaNum_589089\\checkpoint\\best_model.pth"
+  exp_dir: "experiments/ParameterSensitivityAnalysis_wFullCPU"
+  test_data_path: ""
+  num_workers: 2          # DataLoader 并行读取进程数，Windows 建议 0 或 2
+  post_workers: 8         # Phase 2 后处理线程数（指标/残差/绘图），numpy 释放 GIL 可真正并行
+  plot_interval: 100        # 每隔 N 个样本保存一张预测图（1=每个都保存）
+  plot_format: 'png'      # 'png'(快) 或 'svg'(矢量)
+  save_timestep_csv: []   # 保存指定时间步样本的预测/真实值 CSV（格式同 max_size_prediction_target_n*.csv）
+                          # 空列表=不保存；示例: [10, 20, 50]
+
+indicator:
+  precision: ['relative_l2', 'max_error']
+  speed: ['speedup_pure_solve', 'speedup_process', 'throughput_ratio', 'latency_p90', 'latency_std'] # throughput_ratio = speedup_process
+  resource: ['gpu_memory_mb', 'gpu_utilization', 'gpu_power_watts']
+  output_custom_file: 'metrics_comprehensive.csv'

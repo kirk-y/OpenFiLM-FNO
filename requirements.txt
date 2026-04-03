@@ -1,0 +1,11 @@
+﻿torch
+torchvision
+torchaudio
+numpy
+pandas
+PyYAML
+matplotlib
+neuraloperator
+h5py
+tqdm
+scipy
