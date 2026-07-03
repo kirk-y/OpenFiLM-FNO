@@ -1,69 +1,123 @@
-﻿# HFSmodel (OpenHFSmodelFNO)
+# OpenFiLM-FNO
 
-[中文版本](README_cn.md)
+Code accompanying the manuscript:
 
-This repository provides a training and evaluation framework for a surrogate model based on the Fourier Neural Operator (FNO). It is designed to efficiently train and test predictions of spatiotemporal evolution or physical fields.
+**A verified learned update for nonlinear fracture-opening coupling iterations**
 
-> **Note:** The training and testing data required for this project (the contents of the `data/` directory and specific data structure definitions) are temporarily **closed-source**. If you wish to run the model on your own dataset, please prepare your own input data. Specific instructions on the required data formats will be provided in a future update.
+This repository provides the FiLM-FNO training and inference components used for a verified learned-update task in a pressurized fracture-opening coupling benchmark. The learned component maps assembled solver-state features, serialized physical-field channels, history information, and global material/loading parameters to the converged crack-opening increment produced by a reference FVM/DDM coupling loop.
+
+The repository is intended to support model training, inference, and evaluation of the FiLM-FNO component. It is not an end-to-end fracture simulator, a generic surrogate for all coupled PDE systems, or a replacement for the reference fracture-mechanics workflow. The reference FVM/DDM code that generates benchmark solver states is not included.
+
+## Scope
+
+- Implements the FiLM-FNO training and evaluation workflow used for the learned-update component.
+- Provides scripts for GPU and CPU inference/evaluation.
+- Reports sample-wise prediction metrics such as relative L2 error and normalized RMSE.
+- Does not include the internal FVM/DDM reference simulator.
+- Does not include the full benchmark dataset at submission time because it contains internal solver-state information and implementation-dependent data structures.
+
+Qualified researchers may request access to non-confidential portions of the benchmark data from the corresponding author, consistent with the Data availability statement in the manuscript.
 
 ## Directory Structure
+
 ```text
 .
-├── common/              # Common utilities: loss functions (loss.py), visualization (visualization.py), etc.
-├── data/                # Data processing modules (data itself is not open-sourced)
-├── experiments/         # Directory for experimental outputs (model weights, logs, charts, etc.)
-├── models/              # Model definitions (FNO based on fno.py)
-├── training/            # Training pipeline logic (trainer.py)
+├── common/              # Common utilities, including loss functions and visualization helpers
+├── data/                # Data processing modules; benchmark data are not included
+├── experiments/         # Experimental outputs such as model weights, logs, charts, and metrics
+├── models/              # Model definitions, including the FNO/FiLM-FNO components
+├── training/            # Training pipeline logic
 ├── config.yml           # Configuration file for training
 ├── main.py              # Main entry point for training
-├── test_config.yml      # Configuration file for testing & evaluation
-├── test_eval.py         # Testing script typically for GPU execution (Test Set Version 1)
-└── test_eval_cpu.py     # Testing script explicitly for CPU execution (Test Set Version 2)
+├── test_config.yml      # Configuration file for testing and evaluation
+├── test_eval.py         # Evaluation script typically used with GPU execution
+└── test_eval_cpu.py     # CPU-only evaluation script
 ```
 
 ## Dependencies
-It is recommended to use Python 3.8+ with any modern, mainstream version of PyTorch. You can install the basic dependencies using the following commands:
+
+Python 3.8+ and a modern PyTorch installation are recommended. Basic dependencies can be installed with:
+
 ```bash
 pip install torch torchvision torchaudio
 pip install numpy pyyaml matplotlib h5py
-# You might also need other standard scientific or progress tracking libraries depending on your env:
-# pip install tqdm scipy
+pip install tqdm scipy
 ```
+
+The exact PyTorch installation command may depend on the local CUDA/CPU environment. Please refer to the official PyTorch installation instructions for platform-specific builds.
 
 ## Quick Start
 
 ### 1. Training
-The sole entry point for model training is `main.py`. All hyperparameters (e.g., network structure, learning rate, batch size) are specified in `config.yml`.
-Once `config.yml` is configured, execute the following command in the terminal to start training:
+
+The main entry point for model training is `main.py`. Hyperparameters such as network structure, learning rate, batch size, paths, and output directories are configured in `config.yml`.
+
+After editing `config.yml`, run:
+
 ```bash
 python -m main
 ```
-*(Alternatively, you can run `python main.py`)*
 
-During training, weights, logs, and visualization charts will be automatically saved under the `experiments/` or associated output directories.
+or:
+
+```bash
+python main.py
+```
+
+Training outputs, logs, metrics, and visualization files are saved under `experiments/` or the configured output directories.
 
 ### 2. Testing and Evaluation
-This project provides two versions of testing scripts catering to different hardware availability and test scenarios:
-- **`test_eval.py`**: The primary testing evaluation script (typically executed on GPUs).
-- **`test_eval_cpu.py`**: The CPU-only evaluation script, useful for inference on non-GPU nodes or validating specific test flows.
 
-All testing parameters are governed by `test_config.yml`. To run the tests, execute:
+Testing parameters are configured in `test_config.yml`.
+
+For GPU-oriented evaluation:
+
 ```bash
 python test_eval.py
-# OR
+```
+
+For CPU-only evaluation:
+
+```bash
 python test_eval_cpu.py
 ```
 
-## Evaluation Metrics
-- **MSE / MAE / Increment MSE**: Fundamental metrics measuring absolute errors and incremental prediction proficiency.
-- **Relative L2 Error**: Calculated per sample as $\lVert \hat{y}-y \rVert_2 / (\lVert y \rVert_2 + 10^{-8})$. During training, it records to `metrics/relative_l2_curve.png`. Testing phases generate `relative_l2_error_curve.png` and output the sample-wise JSON.
-- **Normalized RMSE (NRMSE)**: Normalized via $\mathrm{RMSE} / (\max(y)-\min(y)+10^{-8})$, it also provides training/validation curves and sample-wise testing charts.
+The CPU script is useful for checking inference behavior on non-GPU machines and for reproducing CPU timing tests.
 
-Historical data of all metrics will be written to `metrics/history.json`. The testing pipeline additionally outputs `*_per_sample.json` files for downstream analysis and customized visualizations.
+## Evaluation Metrics
+
+The evaluation pipeline reports:
+
+- **MSE / MAE / Increment MSE**: absolute and increment-level prediction errors.
+- **Relative L2 error**: computed per sample as
+  `||y_pred - y||_2 / (||y||_2 + 1e-8)`.
+- **Normalized RMSE (NRMSE)**: computed as
+  `RMSE / (max(y) - min(y) + 1e-8)`.
+
+Training and validation histories are written to `metrics/history.json` when enabled. Testing also produces sample-wise metric files for downstream analysis and visualization.
 
 ## Custom Test Set Loading
-You can specify a custom pickle file path in `testing.test_data_path` within the config (use an absolute path or relative to `config.yml`). The testing phase will prioritize loading this file as the test set rather than relying on the default partitioned dataset. This is highly useful for reproducing benchmarks on specific sample sets or reusing existing splits.
 
-## Error-Driven Testing Visualization
-The testing pipeline now sorts validation runs by sample-wise MSE, plotting prediction/increment charts in the `figures/` directory exclusively for the top 30 samples with the highest errors. This ensures rapid identification of the worst-performing cases. The complete per-sample metrics are still preserved in `*_per_sample.json` for individualized analysis.
+A custom test set can be specified through `testing.test_data_path` in `test_config.yml`. Use either an absolute path or a path relative to the repository root/configuration file. When this path is provided, the testing pipeline loads the specified file instead of relying on a default data partition.
 
+This option is useful for evaluating fixed held-out scenarios or reproducing a specific benchmark split when compatible data are available.
+
+## Error-Driven Visualization
+
+The testing pipeline can sort samples by error and generate prediction/increment visualizations for the worst-performing cases. This helps identify difficult crack-opening states, especially samples with localized tip-region errors. Full per-sample metrics are preserved for further analysis.
+
+## Data Availability
+
+The full benchmark dataset is not included in this repository. It was generated by an internal FVM/DDM reference workflow and contains intermediate solver-state information. The repository can be used with user-prepared data that follow the expected tensor/schema conventions in the data-loading modules.
+
+The reference FVM/DDM simulator is not publicly released.
+
+## Citation
+
+If this repository supports your work, please cite the associated manuscript once it becomes available:
+
+```text
+Yang K., Zhang Q., Chen X., Chen P., Zhang W., Peng B.
+A verified learned update for nonlinear fracture-opening coupling iterations.
+Submitted to Engineering Fracture Mechanics.
+```
