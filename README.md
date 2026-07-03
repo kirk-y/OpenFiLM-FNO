@@ -2,7 +2,7 @@
 
 Code accompanying the manuscript:
 
-**A verified learned update for nonlinear fracture-opening coupling iterations**
+**A FiLM-FNO solver for nonlinear crack-opening simulations**
 
 This repository provides the FiLM-FNO training and inference components used for a verified learned-update task in a pressurized fracture-opening coupling benchmark. The learned component maps assembled solver-state features, serialized physical-field channels, history information, and global material/loading parameters to the converged crack-opening increment produced by a reference FVM/DDM coupling loop.
 
@@ -118,6 +118,6 @@ If this repository supports your work, please cite the associated manuscript onc
 
 ```text
 Yang K., Zhang Q., Chen X., Chen P., Zhang W., Peng B.
-A verified learned update for nonlinear fracture-opening coupling iterations.
+A FiLM-FNO solver for nonlinear crack-opening simulations.
 Submitted to Engineering Fracture Mechanics.
 ```
